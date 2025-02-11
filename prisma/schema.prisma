@@ -35,6 +35,12 @@ model Category {
   Product Product[]
 }
 
+model Collection {
+  id    String   @id @default(uuid())
+  name  String   @unique
+  products Product[]
+}
+
 model Product {
   id          String   @id @default(uuid())
   title       String
@@ -46,16 +52,18 @@ model Product {
   tags        String[] @default([])
   gender      Gender
 
-  // Relaciones
-
   category   Category @relation(fields: [categoryId], references: [id])
   categoryId String
+
+  collection   Collection? @relation(fields: [collectionId], references: [id])
+  collectionId String?
 
   ProductImage ProductImage[]
   OrderItem    OrderItem[]
 
   @@index([gender])
 }
+
 
 model ProductImage {
   id  Int    @id @default(autoincrement())

@@ -5,89 +5,63 @@ import { countries } from './seed-countries';
 
 
 async function main() {
-
-  // 1. Borrar registros previos
-  // await Promise.all( [
-
   await prisma.orderAddress.deleteMany();
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
-
-
   await prisma.userAddress.deleteMany();
   await prisma.user.deleteMany();
   await prisma.country.deleteMany();
-
   await prisma.productImage.deleteMany();
   await prisma.product.deleteMany();
   await prisma.category.deleteMany();
-  // ]);
-  
-  const { categories, products, users } = initialData;
+  await prisma.collection.deleteMany(); // Nueva línea para borrar colecciones previas
 
+  const { categories, products, users, collections } = initialData;
 
-  await prisma.user.createMany({
-    data: users
-  });
+  await prisma.user.createMany({ data: users });
+  await prisma.country.createMany({ data: countries });
 
-  await prisma.country.createMany({
-    data: countries
-  });
+  const categoriesData = categories.map(name => ({ name }));
+  await prisma.category.createMany({ data: categoriesData });
 
+  const collectionsData = collections.map(name => ({ name }));
+  await prisma.collection.createMany({ data: collectionsData });
 
-
-  //  Categorias
-  // {
-  //   name: 'Shirt'
-  // }
-  const categoriesData = categories.map( (name) => ({ name }));
-  
-  await prisma.category.createMany({
-    data: categoriesData
-  });
-
-  
   const categoriesDB = await prisma.category.findMany();
-  
-  const categoriesMap = categoriesDB.reduce( (map, category) => {
-    map[ category.name.toLowerCase()] = category.id;
+  const collectionsDB = await prisma.collection.findMany();
+
+  const categoriesMap = categoriesDB.reduce((map, category) => {
+    map[category.name.toLowerCase()] = category.id;
     return map;
-  }, {} as Record<string, string>); //<string=shirt, string=categoryID>
-  
-  
+  }, {} as Record<string, string>);
 
-  // Productos
+  const collectionsMap = collectionsDB.reduce((map, collection) => {
+    map[collection.name.toLowerCase()] = collection.id;
+    return map;
+  }, {} as Record<string, string>);
 
-  products.forEach( async(product) => {
-
-    const { type, images, ...rest } = product;
+  for (const product of products) {
+    const { type, images, collection, ...rest } = product;
 
     const dbProduct = await prisma.product.create({
       data: {
         ...rest,
-        categoryId: categoriesMap[type]
+        categoryId: categoriesMap[type.toLowerCase()],
+        collectionId: collection ? collectionsMap[collection.toLowerCase()] : null
       }
-    })
+    });
 
-
-    // Images
-    const imagesData = images.map( image => ({
+    const imagesData = images.map(image => ({
       url: image,
       productId: dbProduct.id
     }));
 
-    await prisma.productImage.createMany({
-      data: imagesData
-    });
+    await prisma.productImage.createMany({ data: imagesData });
+  }
 
-  });
-
-
-
-
-
-  console.log( 'Seed ejecutado correctamente' );
+  console.log('Seed ejecutado correctamente');
 }
+
 
 
 
